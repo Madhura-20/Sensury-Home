@@ -1,0 +1,6 @@
+{
+  "name": "SENSURY HOME",
+  "description": "AI-powered home construction platform guiding families in Tamil Nadu and across India from land selection to final handover.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,541 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'madhurasrisenthilkumar@gmail.com'
+      );
+    }
+
+    function isProjectOwner(projectId) {
+      return isVerifiedUser() &&
+        exists(/databases/$(database)/documents/projects/$(projectId)) &&
+        get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
+    }
+
+    // Validation Blueprints
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'preferredLanguage', 'district', 'activeProjectId', 'savedMaterialIds', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'displayName', 'preferredLanguage', 'district', 'activeProjectId', 'savedMaterialIds', 'createdAt', 'updatedAt']) &&
+        data.uid is string && isValidId(data.uid) &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        data.preferredLanguage in ['en', 'ta'] &&
+        data.district is string && data.district.size() <= 80 &&
+        data.activeProjectId is string && data.activeProjectId.size() <= 128 &&
+        data.savedMaterialIds is list && data.savedMaterialIds.size() <= 50 &&
+        (data.savedMaterialIds.size() == 0 || data.savedMaterialIds[0] is string) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll(['uid', 'email', 'phone', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'phone', 'updatedAt']) &&
+        data.uid is string && isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+        data.phone is string && data.phone.size() <= 24 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidHomeProject(data) {
+      return data.keys().hasAll([
+          'ownerId', 'projectName', 'landLocation', 'district', 'plotLengthFt', 'plotWidthFt',
+          'plotAreaSqFt', 'plotType', 'totalBudgetInr', 'floors', 'bedrooms', 'bathrooms',
+          'kitchenType', 'parkingType', 'houseStyle', 'additionalPreferences', 'builtUpAreaSqFt',
+          'estimatedCostInr', 'planningSummary', 'currentStageNumber', 'completedStageNumbers',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'projectName', 'landLocation', 'district', 'plotLengthFt', 'plotWidthFt',
+          'plotAreaSqFt', 'plotType', 'totalBudgetInr', 'floors', 'bedrooms', 'bathrooms',
+          'kitchenType', 'parkingType', 'houseStyle', 'additionalPreferences', 'builtUpAreaSqFt',
+          'estimatedCostInr', 'planningSummary', 'currentStageNumber', 'completedStageNumbers',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.projectName is string && data.projectName.size() >= 2 && data.projectName.size() <= 120 &&
+        data.landLocation is string && data.landLocation.size() >= 2 && data.landLocation.size() <= 140 &&
+        data.district is string && data.district.size() >= 2 && data.district.size() <= 80 &&
+        data.plotLengthFt is number && data.plotLengthFt > 0 && data.plotLengthFt <= 5000 &&
+        data.plotWidthFt is number && data.plotWidthFt > 0 && data.plotWidthFt <= 5000 &&
+        data.plotAreaSqFt is number && data.plotAreaSqFt > 0 && data.plotAreaSqFt <= 500000 &&
+        data.plotType in ['DTCP', 'CMDA', 'Panchayat', 'Patta', 'Other'] &&
+        data.totalBudgetInr is number && data.totalBudgetInr >= 100000 && data.totalBudgetInr <= 500000000 &&
+        data.floors in ['G', 'G+1', 'G+2', 'G+3'] &&
+        data.bedrooms is int && data.bedrooms >= 1 && data.bedrooms <= 12 &&
+        data.bathrooms is int && data.bathrooms >= 1 && data.bathrooms <= 12 &&
+        data.kitchenType is string && data.kitchenType.size() >= 2 && data.kitchenType.size() <= 60 &&
+        data.parkingType is string && data.parkingType.size() >= 2 && data.parkingType.size() <= 60 &&
+        data.houseStyle is string && data.houseStyle.size() >= 2 && data.houseStyle.size() <= 80 &&
+        data.additionalPreferences is string && data.additionalPreferences.size() <= 1000 &&
+        data.builtUpAreaSqFt is number && data.builtUpAreaSqFt >= 0 && data.builtUpAreaSqFt <= 200000 &&
+        data.estimatedCostInr is number && data.estimatedCostInr >= 0 && data.estimatedCostInr <= 500000000 &&
+        data.planningSummary is string && data.planningSummary.size() <= 8000 &&
+        data.currentStageNumber is int && data.currentStageNumber >= 1 && data.currentStageNumber <= 18 &&
+        data.completedStageNumbers is list && data.completedStageNumbers.size() <= 18 &&
+        (data.completedStageNumbers.size() == 0 || data.completedStageNumbers[0] is int) &&
+        data.status in ['planning', 'active', 'completed'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidConstructionTask(data) {
+      return data.keys().hasAll(['projectId', 'ownerId', 'stageNumber', 'title', 'description', 'assignedRole', 'dueDate', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['projectId', 'ownerId', 'stageNumber', 'title', 'description', 'assignedRole', 'dueDate', 'status', 'createdAt', 'updatedAt']) &&
+        data.projectId is string && isValidId(data.projectId) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.stageNumber is int && data.stageNumber >= 1 && data.stageNumber <= 18 &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 140 &&
+        data.description is string && data.description.size() <= 1000 &&
+        data.assignedRole is string && data.assignedRole.size() <= 80 &&
+        data.dueDate is string && data.dueDate.size() <= 30 &&
+        data.status in ['pending', 'in_progress', 'completed'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProjectExpense(data) {
+      return data.keys().hasAll(['projectId', 'ownerId', 'stageNumber', 'category', 'title', 'vendorName', 'amountInr', 'paymentMode', 'expenseDate', 'notes', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['projectId', 'ownerId', 'stageNumber', 'category', 'title', 'vendorName', 'amountInr', 'paymentMode', 'expenseDate', 'notes', 'createdAt', 'updatedAt']) &&
+        data.projectId is string && isValidId(data.projectId) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.stageNumber is int && data.stageNumber >= 1 && data.stageNumber <= 18 &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 140 &&
+        data.vendorName is string && data.vendorName.size() <= 120 &&
+        data.amountInr is number && data.amountInr >= 0 && data.amountInr <= 500000000 &&
+        data.paymentMode is string && data.paymentMode.size() >= 2 && data.paymentMode.size() <= 40 &&
+        data.expenseDate is string && data.expenseDate.size() >= 2 && data.expenseDate.size() <= 30 &&
+        data.notes is string && data.notes.size() <= 500 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProgressUpdate(data) {
+      return data.keys().hasAll(['projectId', 'ownerId', 'stageNumber', 'title', 'notes', 'photoDataUrl', 'updateDate', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['projectId', 'ownerId', 'stageNumber', 'title', 'notes', 'photoDataUrl', 'updateDate', 'createdAt', 'updatedAt']) &&
+        data.projectId is string && isValidId(data.projectId) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.stageNumber is int && data.stageNumber >= 1 && data.stageNumber <= 18 &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 140 &&
+        data.notes is string && data.notes.size() >= 2 && data.notes.size() <= 2000 &&
+        data.photoDataUrl is string && data.photoDataUrl.size() <= 350000 &&
+        data.updateDate is string && data.updateDate.size() >= 2 && data.updateDate.size() <= 30 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProjectDocument(data) {
+      return data.keys().hasAll(['projectId', 'ownerId', 'category', 'title', 'stageNumber', 'status', 'fileName', 'fileType', 'fileDataUrl', 'notes', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['projectId', 'ownerId', 'category', 'title', 'stageNumber', 'status', 'fileName', 'fileType', 'fileDataUrl', 'notes', 'createdAt', 'updatedAt']) &&
+        data.projectId is string && isValidId(data.projectId) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 80 &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 140 &&
+        data.stageNumber is int && data.stageNumber >= 1 && data.stageNumber <= 18 &&
+        data.status in ['pending', 'under_review', 'verified'] &&
+        data.fileName is string && data.fileName.size() <= 180 &&
+        data.fileType is string && data.fileType.size() <= 80 &&
+        data.fileDataUrl is string && data.fileDataUrl.size() <= 450000 &&
+        data.notes is string && data.notes.size() <= 1000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidQuotationRequest(data) {
+      return data.keys().hasAll(['projectId', 'ownerId', 'roleCategory', 'providerName', 'scopeSummary', 'budgetRange', 'quotedAmountInr', 'timelineWeeks', 'status', 'notes', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['projectId', 'ownerId', 'roleCategory', 'providerName', 'scopeSummary', 'budgetRange', 'quotedAmountInr', 'timelineWeeks', 'status', 'notes', 'createdAt', 'updatedAt']) &&
+        data.projectId is string && isValidId(data.projectId) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.roleCategory is string && data.roleCategory.size() >= 2 && data.roleCategory.size() <= 60 &&
+        data.providerName is string && data.providerName.size() <= 120 &&
+        data.scopeSummary is string && data.scopeSummary.size() >= 5 && data.scopeSummary.size() <= 1500 &&
+        data.budgetRange is string && data.budgetRange.size() >= 2 && data.budgetRange.size() <= 80 &&
+        data.quotedAmountInr is number && data.quotedAmountInr >= 0 && data.quotedAmountInr <= 500000000 &&
+        data.timelineWeeks is int && data.timelineWeeks >= 0 && data.timelineWeeks <= 520 &&
+        data.status in ['requested', 'received', 'shortlisted', 'declined'] &&
+        data.notes is string && data.notes.size() <= 1000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAiConversation(data) {
+      return data.keys().hasAll(['ownerId', 'projectId', 'title', 'language', 'messages', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'projectId', 'title', 'language', 'messages', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.projectId is string && data.projectId.size() <= 128 &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 140 &&
+        data.language in ['en', 'ta', 'bilingual'] &&
+        data.messages is list && data.messages.size() <= 40 &&
+        (data.messages.size() == 0 || data.messages[0] is map) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMaterialItem(data) {
+      return data.keys().hasAll(['category', 'name', 'summary', 'types', 'applications', 'qualitySpecs', 'indianStandards', 'pros', 'cons', 'brandExamples', 'indicativePrice', 'priceLocation', 'priceDate', 'sourceType', 'manufacturerNotes', 'supplierNotes', 'updatedAt']) &&
+        data.keys().hasOnly(['category', 'name', 'summary', 'types', 'applications', 'qualitySpecs', 'indianStandards', 'pros', 'cons', 'brandExamples', 'indicativePrice', 'priceLocation', 'priceDate', 'sourceType', 'manufacturerNotes', 'supplierNotes', 'updatedAt']) &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 120 &&
+        data.summary is string && data.summary.size() >= 5 && data.summary.size() <= 2000 &&
+        data.types is string && data.types.size() <= 1000 &&
+        data.applications is string && data.applications.size() <= 1000 &&
+        data.qualitySpecs is string && data.qualitySpecs.size() <= 1000 &&
+        data.indianStandards is string && data.indianStandards.size() <= 300 &&
+        data.pros is string && data.pros.size() <= 1000 &&
+        data.cons is string && data.cons.size() <= 1000 &&
+        data.brandExamples is string && data.brandExamples.size() <= 600 &&
+        data.indicativePrice is string && data.indicativePrice.size() <= 160 &&
+        data.priceLocation is string && data.priceLocation.size() <= 120 &&
+        data.priceDate is string && data.priceDate.size() <= 40 &&
+        data.sourceType in ['Verified Reference', 'Manufacturer Claim', 'Supplier Provided', 'Sample Reference'] &&
+        data.manufacturerNotes is string && data.manufacturerNotes.size() <= 800 &&
+        data.supplierNotes is string && data.supplierNotes.size() <= 800 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProductItem(data) {
+      return data.keys().hasAll(['category', 'brand', 'name', 'productType', 'grade', 'specs', 'indicativePriceInr', 'unit', 'priceLocation', 'qualityDocsNote', 'pros', 'cons', 'suitableFor', 'sourceType', 'updatedAt']) &&
+        data.keys().hasOnly(['category', 'brand', 'name', 'productType', 'grade', 'specs', 'indicativePriceInr', 'unit', 'priceLocation', 'qualityDocsNote', 'pros', 'cons', 'suitableFor', 'sourceType', 'updatedAt']) &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+        data.brand is string && data.brand.size() >= 2 && data.brand.size() <= 80 &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 120 &&
+        data.productType is string && data.productType.size() >= 2 && data.productType.size() <= 80 &&
+        data.grade is string && data.grade.size() >= 1 && data.grade.size() <= 60 &&
+        data.specs is string && data.specs.size() <= 800 &&
+        data.indicativePriceInr is number && data.indicativePriceInr >= 0 && data.indicativePriceInr <= 10000000 &&
+        data.unit is string && data.unit.size() >= 1 && data.unit.size() <= 40 &&
+        data.priceLocation is string && data.priceLocation.size() <= 120 &&
+        data.qualityDocsNote is string && data.qualityDocsNote.size() <= 400 &&
+        data.pros is string && data.pros.size() <= 600 &&
+        data.cons is string && data.cons.size() <= 600 &&
+        data.suitableFor is string && data.suitableFor.size() <= 400 &&
+        data.sourceType in ['Verified Reference', 'Manufacturer Claim', 'Supplier Provided', 'Sample Reference'] &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidDirectoryProfile(data) {
+      return data.keys().hasAll(['role', 'name', 'district', 'specialization', 'experienceNote', 'verificationLabel', 'updatedAt']) &&
+        data.keys().hasOnly(['role', 'name', 'district', 'specialization', 'experienceNote', 'verificationLabel', 'updatedAt']) &&
+        data.role in ['Architect', 'Civil Engineer', 'Structural Engineer', 'Contractor', 'Interior Designer', 'Material Supplier'] &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 120 &&
+        data.district is string && data.district.size() >= 2 && data.district.size() <= 80 &&
+        data.specialization is string && data.specialization.size() >= 2 && data.specialization.size() <= 200 &&
+        data.experienceNote is string && data.experienceNote.size() <= 500 &&
+        data.verificationLabel in ['Sample Template (Illustrative Only)', 'Admin Listed'] &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidInquiry(data) {
+      return data.keys().hasAll(['name', 'email', 'district', 'message', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'email', 'district', 'message', 'createdAt']) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+        data.email is string && data.email.size() >= 5 && data.email.size() <= 160 &&
+        data.district is string && data.district.size() <= 80 &&
+        data.message is string && data.message.size() >= 5 && data.message.size() <= 1500 &&
+        data.createdAt is timestamp;
+    }
+
+    // Admin lookup
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isVerifiedUser() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // Users & Isolated PII
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isVerifiedUser() &&
+        request.auth.uid == userId &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isVerifiedUser() &&
+        isValidUserProfile(incoming()) &&
+        (request.auth.uid == userId || isAdmin()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'preferredLanguage', 'district', 'activeProjectId', 'savedMaterialIds', 'updatedAt']);
+      allow delete: if false;
+
+      match /private/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && docId == 'info' && isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow list: if false;
+        allow create: if isValidId(userId) && isValidId(docId) && docId == 'info' && isVerifiedUser() &&
+          request.auth.uid == userId &&
+          isValidUserPrivateInfo(incoming()) &&
+          incoming().uid == request.auth.uid &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(docId) && docId == 'info' && isVerifiedUser() &&
+          isValidUserPrivateInfo(incoming()) &&
+          (request.auth.uid == userId || isAdmin()) &&
+          incoming().uid == existing().uid &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['email', 'phone', 'updatedAt']);
+        allow delete: if false;
+      }
+    }
+
+    // Home Projects
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId) && isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isValidId(projectId) && isVerifiedUser() &&
+        isValidHomeProject(incoming()) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(projectId) && isVerifiedUser() &&
+        isValidHomeProject(incoming()) &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            existing().status != 'completed' &&
+            incoming().ownerId == existing().ownerId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time &&
+            (
+              // Action: Update house plan parameters & summary
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'projectName', 'landLocation', 'district', 'plotLengthFt', 'plotWidthFt',
+                'plotAreaSqFt', 'plotType', 'totalBudgetInr', 'floors', 'bedrooms', 'bathrooms',
+                'kitchenType', 'parkingType', 'houseStyle', 'additionalPreferences', 'builtUpAreaSqFt',
+                'estimatedCostInr', 'planningSummary', 'updatedAt'
+              ]) ||
+              // Action: Update construction stage progress & status
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'currentStageNumber', 'completedStageNumbers', 'status', 'updatedAt'
+              ])
+            )
+          )
+        );
+      allow delete: if isValidId(projectId) && isVerifiedUser() && (existing().ownerId == request.auth.uid || isAdmin());
+
+      // Subcollection: Tasks
+      match /tasks/{taskId} {
+        allow get: if isValidId(projectId) && isValidId(taskId) && (isProjectOwner(projectId) || isAdmin());
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isValidId(projectId) && isValidId(taskId) && isVerifiedUser() &&
+          isValidConstructionTask(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProjectOwner(projectId);
+        allow update: if isValidId(projectId) && isValidId(taskId) && isVerifiedUser() &&
+          isValidConstructionTask(incoming()) &&
+          (
+            isAdmin() ||
+            (
+              existing().ownerId == request.auth.uid &&
+              isProjectOwner(projectId) &&
+              incoming().projectId == existing().projectId &&
+              incoming().ownerId == existing().ownerId &&
+              incoming().createdAt == existing().createdAt &&
+              incoming().updatedAt == request.time &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['stageNumber', 'title', 'description', 'assignedRole', 'dueDate', 'status', 'updatedAt'])
+            )
+          );
+        allow delete: if isValidId(projectId) && isValidId(taskId) && (isProjectOwner(projectId) || isAdmin());
+      }
+
+      // Subcollection: Expenses
+      match /expenses/{expenseId} {
+        allow get: if isValidId(projectId) && isValidId(expenseId) && (isProjectOwner(projectId) || isAdmin());
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isValidId(projectId) && isValidId(expenseId) && isVerifiedUser() &&
+          isValidProjectExpense(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProjectOwner(projectId);
+        allow update: if isValidId(projectId) && isValidId(expenseId) && isVerifiedUser() &&
+          isValidProjectExpense(incoming()) &&
+          (
+            isAdmin() ||
+            (
+              existing().ownerId == request.auth.uid &&
+              isProjectOwner(projectId) &&
+              incoming().projectId == existing().projectId &&
+              incoming().ownerId == existing().ownerId &&
+              incoming().createdAt == existing().createdAt &&
+              incoming().updatedAt == request.time &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['stageNumber', 'category', 'title', 'vendorName', 'amountInr', 'paymentMode', 'expenseDate', 'notes', 'updatedAt'])
+            )
+          );
+        allow delete: if isValidId(projectId) && isValidId(expenseId) && (isProjectOwner(projectId) || isAdmin());
+      }
+
+      // Subcollection: Progress Updates
+      match /progress_updates/{updateId} {
+        allow get: if isValidId(projectId) && isValidId(updateId) && (isProjectOwner(projectId) || isAdmin());
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isValidId(projectId) && isValidId(updateId) && isVerifiedUser() &&
+          isValidProgressUpdate(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProjectOwner(projectId);
+        allow update: if isValidId(projectId) && isValidId(updateId) && isVerifiedUser() &&
+          isValidProgressUpdate(incoming()) &&
+          (
+            isAdmin() ||
+            (
+              existing().ownerId == request.auth.uid &&
+              isProjectOwner(projectId) &&
+              incoming().projectId == existing().projectId &&
+              incoming().ownerId == existing().ownerId &&
+              incoming().createdAt == existing().createdAt &&
+              incoming().updatedAt == request.time &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['stageNumber', 'title', 'notes', 'photoDataUrl', 'updateDate', 'updatedAt'])
+            )
+          );
+        allow delete: if isValidId(projectId) && isValidId(updateId) && (isProjectOwner(projectId) || isAdmin());
+      }
+
+      // Subcollection: Documents
+      match /documents/{docId} {
+        allow get: if isValidId(projectId) && isValidId(docId) && (isProjectOwner(projectId) || isAdmin());
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isValidId(projectId) && isValidId(docId) && isVerifiedUser() &&
+          isValidProjectDocument(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProjectOwner(projectId);
+        allow update: if isValidId(projectId) && isValidId(docId) && isVerifiedUser() &&
+          isValidProjectDocument(incoming()) &&
+          (
+            isAdmin() ||
+            (
+              existing().ownerId == request.auth.uid &&
+              isProjectOwner(projectId) &&
+              incoming().projectId == existing().projectId &&
+              incoming().ownerId == existing().ownerId &&
+              incoming().createdAt == existing().createdAt &&
+              incoming().updatedAt == request.time &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['category', 'title', 'stageNumber', 'status', 'fileName', 'fileType', 'fileDataUrl', 'notes', 'updatedAt'])
+            )
+          );
+        allow delete: if isValidId(projectId) && isValidId(docId) && (isProjectOwner(projectId) || isAdmin());
+      }
+
+      // Subcollection: Quotations
+      match /quotations/{quotationId} {
+        allow get: if isValidId(projectId) && isValidId(quotationId) && (isProjectOwner(projectId) || isAdmin());
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isValidId(projectId) && isValidId(quotationId) && isVerifiedUser() &&
+          isValidQuotationRequest(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProjectOwner(projectId);
+        allow update: if isValidId(projectId) && isValidId(quotationId) && isVerifiedUser() &&
+          isValidQuotationRequest(incoming()) &&
+          (
+            isAdmin() ||
+            (
+              existing().ownerId == request.auth.uid &&
+              isProjectOwner(projectId) &&
+              incoming().projectId == existing().projectId &&
+              incoming().ownerId == existing().ownerId &&
+              incoming().createdAt == existing().createdAt &&
+              incoming().updatedAt == request.time &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['roleCategory', 'providerName', 'scopeSummary', 'budgetRange', 'quotedAmountInr', 'timelineWeeks', 'status', 'notes', 'updatedAt'])
+            )
+          );
+        allow delete: if isValidId(projectId) && isValidId(quotationId) && (isProjectOwner(projectId) || isAdmin());
+      }
+    }
+
+    // AI Assistant Conversations
+    match /ai_conversations/{conversationId} {
+      allow get: if isValidId(conversationId) && isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isValidId(conversationId) && isVerifiedUser() &&
+        isValidAiConversation(incoming()) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(conversationId) && isVerifiedUser() &&
+        isValidAiConversation(incoming()) &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            incoming().ownerId == existing().ownerId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'language', 'messages', 'projectId', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(conversationId) && isVerifiedUser() && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Public Knowledge Base Catalogs (Admin Write Only)
+    match /materials/{materialId} {
+      allow get: if isValidId(materialId);
+      allow list: if true;
+      allow create, update: if isValidId(materialId) && isAdmin() && isValidMaterialItem(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isValidId(materialId) && isAdmin();
+    }
+
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create, update: if isValidId(productId) && isAdmin() && isValidProductItem(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isValidId(productId) && isAdmin();
+    }
+
+    match /directory_profiles/{profileId} {
+      allow get: if isValidId(profileId);
+      allow list: if true;
+      allow create, update: if isValidId(profileId) && isAdmin() && isValidDirectoryProfile(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isValidId(profileId) && isAdmin();
+    }
+
+    // Public Contact Inquiries (Create by anyone, Read/Delete Admin Only)
+    match /inquiries/{inquiryId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(inquiryId) && isValidInquiry(incoming()) && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(inquiryId) && isAdmin();
+    }
+  }
+}

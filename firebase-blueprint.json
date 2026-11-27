@@ -1,0 +1,750 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Non-PII homeowner profile and preferences for SENSURY HOME.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "enum": ["en", "ta"]
+        },
+        "district": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "activeProjectId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "savedMaterialIds": {
+          "type": "array",
+          "description": "Up to 50 saved material IDs."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "preferredLanguage", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated PII record for user email and phone.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "updatedAt"]
+    },
+    "HomeProject": {
+      "title": "HomeProject",
+      "description": "Homeowner residential construction project and preliminary house plan.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "projectName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "landLocation": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "district": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "plotLengthFt": {
+          "type": "number"
+        },
+        "plotWidthFt": {
+          "type": "number"
+        },
+        "plotAreaSqFt": {
+          "type": "number"
+        },
+        "plotType": {
+          "type": "string",
+          "enum": ["DTCP", "CMDA", "Panchayat", "Patta", "Other"]
+        },
+        "totalBudgetInr": {
+          "type": "number"
+        },
+        "floors": {
+          "type": "string",
+          "enum": ["G", "G+1", "G+2", "G+3"]
+        },
+        "bedrooms": {
+          "type": "integer"
+        },
+        "bathrooms": {
+          "type": "integer"
+        },
+        "kitchenType": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "parkingType": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "houseStyle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "additionalPreferences": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "builtUpAreaSqFt": {
+          "type": "number"
+        },
+        "estimatedCostInr": {
+          "type": "number"
+        },
+        "planningSummary": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "currentStageNumber": {
+          "type": "integer"
+        },
+        "completedStageNumbers": {
+          "type": "array"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planning", "active", "completed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "projectName",
+        "landLocation",
+        "district",
+        "plotLengthFt",
+        "plotWidthFt",
+        "plotAreaSqFt",
+        "plotType",
+        "totalBudgetInr",
+        "floors",
+        "bedrooms",
+        "bathrooms",
+        "kitchenType",
+        "parkingType",
+        "houseStyle",
+        "builtUpAreaSqFt",
+        "estimatedCostInr",
+        "currentStageNumber",
+        "completedStageNumbers",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ConstructionTask": {
+      "title": "ConstructionTask",
+      "description": "Stage-linked construction task inside a HomeProject.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stageNumber": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "assignedRole": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "dueDate": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "completed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["projectId", "ownerId", "stageNumber", "title", "status", "createdAt", "updatedAt"]
+    },
+    "ProjectExpense": {
+      "title": "ProjectExpense",
+      "description": "Recorded material bill or contractor payment inside a HomeProject.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stageNumber": {
+          "type": "integer"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "vendorName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "amountInr": {
+          "type": "number"
+        },
+        "paymentMode": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "expenseDate": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 30
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["projectId", "ownerId", "stageNumber", "category", "title", "amountInr", "paymentMode", "expenseDate", "createdAt", "updatedAt"]
+    },
+    "ProgressUpdate": {
+      "title": "ProgressUpdate",
+      "description": "Site note and optional compressed progress photo inside a HomeProject.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stageNumber": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2000
+        },
+        "photoDataUrl": {
+          "type": "string",
+          "maxLength": 350000
+        },
+        "updateDate": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 30
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["projectId", "ownerId", "stageNumber", "title", "notes", "updateDate", "createdAt", "updatedAt"]
+    },
+    "ProjectDocument": {
+      "title": "ProjectDocument",
+      "description": "Organized land, approval, agreement, or bill record inside a HomeProject.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "stageNumber": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "under_review", "verified"]
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 180
+        },
+        "fileType": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "fileDataUrl": {
+          "type": "string",
+          "maxLength": 450000
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["projectId", "ownerId", "category", "title", "stageNumber", "status", "createdAt", "updatedAt"]
+    },
+    "QuotationRequest": {
+      "title": "QuotationRequest",
+      "description": "Homeowner quotation request and offer comparison record inside a HomeProject.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roleCategory": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "providerName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "scopeSummary": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1500
+        },
+        "budgetRange": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "quotedAmountInr": {
+          "type": "number"
+        },
+        "timelineWeeks": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["requested", "received", "shortlisted", "declined"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["projectId", "ownerId", "roleCategory", "scopeSummary", "budgetRange", "status", "createdAt", "updatedAt"]
+    },
+    "AiConversation": {
+      "title": "AiConversation",
+      "description": "Persistent AI Home-Building Assistant thread owned by a user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "projectId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "ta", "bilingual"]
+        },
+        "messages": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "language", "messages", "createdAt", "updatedAt"]
+    },
+    "MaterialItem": {
+      "title": "MaterialItem",
+      "description": "Admin-managed construction material entry in the Knowledge Centre.",
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 2000
+        },
+        "indianStandards": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "indicativePrice": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "priceLocation": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "priceDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["Verified Reference", "Manufacturer Claim", "Supplier Provided", "Sample Reference"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["category", "name", "summary", "sourceType", "updatedAt"]
+    },
+    "ProductItem": {
+      "title": "ProductItem",
+      "description": "Admin-managed construction product entry for side-by-side comparison.",
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "brand": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "productType": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "grade": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "indicativePriceInr": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "priceLocation": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "qualityDocsNote": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "suitableFor": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["Verified Reference", "Manufacturer Claim", "Supplier Provided", "Sample Reference"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["category", "brand", "name", "productType", "grade", "indicativePriceInr", "unit", "sourceType", "updatedAt"]
+    },
+    "DirectoryProfile": {
+      "title": "DirectoryProfile",
+      "description": "Admin-managed professional or supplier directory entry.",
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["Architect", "Civil Engineer", "Structural Engineer", "Contractor", "Interior Designer", "Material Supplier"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "district": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "specialization": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "verificationLabel": {
+          "type": "string",
+          "enum": ["Sample Template (Illustrative Only)", "Admin Listed"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["role", "name", "district", "specialization", "verificationLabel", "updatedAt"]
+    },
+    "ContactInquiry": {
+      "title": "ContactInquiry",
+      "description": "Public landing page inquiry submitted by visitors.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 160
+        },
+        "district": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "message": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Non-PII homeowner profile document."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Isolated PII (email, phone) strictly owned by userId."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/HomeProject" },
+      "description": "User's residential home construction project."
+    },
+    "/projects/{projectId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/ConstructionTask" },
+      "description": "Stage-linked construction tasks belonging to a project."
+    },
+    "/projects/{projectId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/ProjectExpense" },
+      "description": "Recorded construction expenses and bills belonging to a project."
+    },
+    "/projects/{projectId}/progress_updates/{updateId}": {
+      "schema": { "$ref": "#/entities/ProgressUpdate" },
+      "description": "Site progress updates and compressed site photos."
+    },
+    "/projects/{projectId}/documents/{docId}": {
+      "schema": { "$ref": "#/entities/ProjectDocument" },
+      "description": "Project documents, approvals, and bills metadata."
+    },
+    "/projects/{projectId}/quotations/{quotationId}": {
+      "schema": { "$ref": "#/entities/QuotationRequest" },
+      "description": "Quotation requests and offer comparisons for a project."
+    },
+    "/ai_conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/AiConversation" },
+      "description": "Saved Gemini AI assistant conversations for a user."
+    },
+    "/materials/{materialId}": {
+      "schema": { "$ref": "#/entities/MaterialItem" },
+      "description": "Platform construction materials knowledge base."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/ProductItem" },
+      "description": "Platform construction products comparison catalog."
+    },
+    "/directory_profiles/{profileId}": {
+      "schema": { "$ref": "#/entities/DirectoryProfile" },
+      "description": "Professionals and suppliers directory profiles."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/ContactInquiry" },
+      "description": "Visitor contact form inquiries."
+    }
+  }
+}
